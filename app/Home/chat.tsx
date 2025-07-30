@@ -2,12 +2,13 @@ import CHeader from "@/components/CHeader";
 import Input from "@/components/Input";
 import { ContactInfoType } from "@/components/Selector/types";
 import { ThemedView } from "@/components/ThemedView";
+import { height } from "@/constants/Styles";
 import useKeyboardStatus from "@/hooks/useKeyboard";
 import { useLocalSearchParams } from "expo-router";
-import { sendSMSAsync } from "expo-sms";
 import React, { useEffect, useRef } from "react";
-import { FlatList } from "react-native";
+import { FlatList, PermissionsAndroid } from "react-native";
 import Animated, { useSharedValue, withSpring } from "react-native-reanimated";
+import * as SmsManager from "sms-manager";
 const Chat = () => {
   const params: any = useLocalSearchParams();
   const ContactInfo: ContactInfoType = JSON.parse(params.contactInfo);
@@ -17,13 +18,23 @@ const Chat = () => {
   const isFocused = useKeyboardStatus();
 
   const handleSendSMS = async (Message: string) => {
-    const { result } = await sendSMSAsync(selectedPhone, Message);
+    const result = await SmsManager.default.sendSms(selectedPhone, Message);
     console.log(result);
   };
 
+  const getSendSMSPermissions = async () => {
+    const permissions = await PermissionsAndroid.requestMultiple([
+      PermissionsAndroid.PERMISSIONS.SEND_SMS,
+      PermissionsAndroid.PERMISSIONS.RECEIVE_SMS,
+      PermissionsAndroid.PERMISSIONS.READ_SMS,
+      PermissionsAndroid.PERMISSIONS.RECEIVE_MMS,
+      PermissionsAndroid.PERMISSIONS.RECEIVE_WAP_PUSH,
+    ]);
+  };
   useEffect(() => {
+    // getSendSMSPermissions();
     if (isFocused) {
-      animatedheight.value = withSpring(310, animatedProps);
+      animatedheight.value = withSpring(height * 0.4, animatedProps);
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 150); // slight delay for keyboard animation
@@ -39,7 +50,7 @@ const Chat = () => {
 
   useEffect(() => {
     if (isFocused) {
-      animatedheight.value = withSpring(310, animatedProps);
+      animatedheight.value = withSpring(height * 0.4, animatedProps);
     } else {
       animatedheight.value = withSpring(0, animatedProps);
     }

@@ -4,7 +4,7 @@ import { ContactInfoType } from "@/components/Selector/types";
 import { ThemedView } from "@/components/ThemedView";
 import { Colors } from "@/constants/Colors";
 import Styles from "@/constants/Styles";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Fontisto, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import * as Contacts from "expo-contacts";
 import { router } from "expo-router";
 import * as SMS from "expo-sms";
@@ -51,7 +51,11 @@ const Home = () => {
         InputPromps={{
           placeholder: "Search for numbers, names & more",
         }}
-        LeftIcon={<View style={styles.miniAvatar}></View>}
+        LeftIcon={
+          <View style={styles.miniAvatar}>
+            <Fontisto name="person" size={20} color={"white"} />
+          </View>
+        }
         RightIcon={
           <View>
             <Ionicons

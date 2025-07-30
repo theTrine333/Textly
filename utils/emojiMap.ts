@@ -1,5 +1,5 @@
 export const emojiMap: Record<string, any> = {
-  "100": require("@/assets/emojis/100.json"),
+  "💯": require("@/assets/emojis/100.json"),
   "🎱": require("@/assets/emojis/8-ball.json"),
   "🛬": require("@/assets/emojis/airplane-arrival.json"),
   "🛫": require("@/assets/emojis/airplane-departure.json"),
@@ -75,7 +75,8 @@ export const emojiMap: Record<string, any> = {
   "☄️": require("@/assets/emojis/comet.json"),
   "😟": require("@/assets/emojis/concerned.json"),
   "🎊": require("@/assets/emojis/confetti-ball.json"),
-  "": require("@/assets/emojis/construction.json"),
+  "🧰": require("@/assets/emojis/construction.json"),
+  "🥴": require("@/assets/emojis/dizzy-face.json"),
 };
 
 export default emojiMap;

@@ -2,7 +2,14 @@ import { Colors } from "@/constants/Colors";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
-import { Image, Text, TouchableOpacity, useColorScheme } from "react-native";
+import {
+  Image,
+  Linking,
+  Platform,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+} from "react-native";
 import { ThemedText } from "../ThemedText";
 import { ThemedView } from "../ThemedView";
 import styles from "./styles";
@@ -11,7 +18,15 @@ const Index = ({ Info, SelectedPhone }: CHeaderPromps) => {
   const Theme = useColorScheme() ?? "light";
   const Styles = styles(Theme);
 
-  const handleCallBtn = async () => {};
+  const handleCallBtn = async () => {
+    if (Platform.OS === "android") {
+      Linking.openURL(`tel:${SelectedPhone}`);
+    } else if (Platform.OS === "ios") {
+      Linking.openURL(`telephone:${SelectedPhone}`);
+    } else {
+      alert("This function is not supported by your os");
+    }
+  };
 
   return (
     <ThemedView style={Styles.container}>
@@ -29,6 +44,7 @@ const Index = ({ Info, SelectedPhone }: CHeaderPromps) => {
         ) : (
           <ThemedView style={Styles.avatar}>
             <Text style={Styles.avatarText}>{Info.name.charAt(0)}</Text>
+            {/* <AntDesign name="user" color={"white"} size={20} /> */}
           </ThemedView>
         )}
 

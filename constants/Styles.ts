@@ -25,6 +25,8 @@ const Styles = (theme: "light" | "dark" = "light") => {
     },
     miniAvatar: {
       backgroundColor: "grey",
+      alignItems: "center",
+      justifyContent: "center",
       width: 35,
       height: 35,
       borderRadius: 20,
