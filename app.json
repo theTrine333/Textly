@@ -28,7 +28,6 @@
     },
     "plugins": [
       "expo-router",
-      "./modules/expo-sms-manager",
       [
         "expo-splash-screen",
         {
