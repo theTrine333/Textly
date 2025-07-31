@@ -1,3 +1,5 @@
+import ChatBody from "@/components/Chat";
+import chatType from "@/components/Chat/types";
 import CHeader from "@/components/CHeader";
 import Input from "@/components/Input";
 import { ContactInfoType } from "@/components/Selector/types";
@@ -5,10 +7,9 @@ import { ThemedView } from "@/components/ThemedView";
 import { height } from "@/constants/Styles";
 import useKeyboardStatus from "@/hooks/useKeyboard";
 import { useLocalSearchParams } from "expo-router";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FlatList, PermissionsAndroid } from "react-native";
 import Animated, { useSharedValue, withSpring } from "react-native-reanimated";
-import * as SmsManager from "sms-manager";
 const Chat = () => {
   const params: any = useLocalSearchParams();
   const ContactInfo: ContactInfoType = JSON.parse(params.contactInfo);
@@ -16,10 +17,22 @@ const Chat = () => {
   const animatedheight = useSharedValue(0);
   const flatListRef = useRef<FlatList>(null);
   const isFocused = useKeyboardStatus();
-
+  const [chats, setChats] = useState<chatType[]>([
+    {
+      id: "0745891380",
+      message: "Hello, mambo",
+      time: new Date().getTime().toString(),
+    },
+  ]);
   const handleSendSMS = async (Message: string) => {
-    const result = await SmsManager.default.sendSms(selectedPhone, Message);
-    console.log(result);
+    setChats([
+      ...chats,
+      {
+        id: "me",
+        message: Message,
+        time: new Date().toDateString(),
+      },
+    ]);
   };
 
   const getSendSMSPermissions = async () => {
@@ -60,7 +73,14 @@ const Chat = () => {
     <ThemedView style={{ flex: 1 }}>
       <CHeader Info={ContactInfo} SelectedPhone={selectedPhone} />
       {/* List */}
-      <ThemedView style={{ flex: 1 }}></ThemedView>
+      <ThemedView style={{ flex: 1 }}>
+        <FlatList
+          data={chats}
+          renderItem={({ item, index }) => (
+            <ChatBody Chat={item} index={index} />
+          )}
+        />
+      </ThemedView>
       {/* TextInput */}
       <Input sendFunction={handleSendSMS} />
       <Animated.View style={{ height: animatedheight }} />

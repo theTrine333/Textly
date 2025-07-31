@@ -13,6 +13,7 @@
       "bundleIdentifier": "com.tesla254.Textly"
     },
     "android": {
+      "permissions": ["SEND_SMS", "READ_SMS", "RECEIVE_SMS", "WRITE_SMS"],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -27,6 +28,7 @@
     },
     "plugins": [
       "expo-router",
+      "./modules/expo-sms-manager",
       [
         "expo-splash-screen",
         {

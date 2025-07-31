@@ -51,9 +51,9 @@ const Index = ({ Info, SelectedPhone }: CHeaderPromps) => {
         {/* Details Holder */}
         <ThemedView style={Styles.infoContainer}>
           <ThemedText numberOfLines={1}>{Info.name}</ThemedText>
-          <ThemedText style={{ fontSize: 10 }} numberOfLines={1}>
+          {/* <ThemedText style={{ fontSize: 10 }} numberOfLines={1}>
             {SelectedPhone}
-          </ThemedText>
+          </ThemedText> */}
         </ThemedView>
       </TouchableOpacity>
       {/* Right Icons */}
