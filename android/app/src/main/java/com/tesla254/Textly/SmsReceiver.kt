@@ -48,7 +48,9 @@ class SmsReceiver(private val reactContext: ReactApplicationContext?) : Broadcas
         return try {
             // Try to get SIM slot from message
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP_MR1) {
-                smsMessage.subscriptionId
+                // Use reflection to get subscription ID since it's not directly accessible
+                val method = smsMessage.javaClass.getMethod("getSubId")
+                method.invoke(smsMessage) as Int
             } else {
                 0
             }
