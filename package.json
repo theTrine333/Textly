@@ -21,6 +21,7 @@
     "@react-navigation/native": "^7.1.6",
     "emoji-regex": "^10.4.0",
     "expo": "~53.0.17",
+    "expo-av": "~15.1.7",
     "expo-blur": "~14.1.5",
     "expo-cellular": "~7.1.5",
     "expo-clipboard": "~7.1.5",

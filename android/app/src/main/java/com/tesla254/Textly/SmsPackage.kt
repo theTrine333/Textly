@@ -13,4 +13,4 @@ class SmsPackage : ReactPackage {
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
         return listOf(SmsModule(reactContext))
     }
-} 
+}
