@@ -1,22 +1,457 @@
-import { Redirect } from "expo-router";
-import React, { useEffect } from "react";
-import { PermissionsAndroid } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import {
+  Alert,
+  FlatList,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  useColorScheme,
+  View,
+} from "react-native";
+import { SMSMessage, Thread } from "../utils/database";
+import { mmsService } from "../utils/mmsService";
+import { smsService } from "../utils/smsService";
 
-const Index = () => {
-  useEffect(() => {
-    const askPermissions = async () => {
-      await PermissionsAndroid.requestMultiple([
-        PermissionsAndroid.PERMISSIONS.READ_SMS,
-        PermissionsAndroid.PERMISSIONS.RECEIVE_SMS,
-        PermissionsAndroid.PERMISSIONS.SEND_SMS,
-        PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
-        PermissionsAndroid.PERMISSIONS.WRITE_CONTACTS,
-        PermissionsAndroid.PERMISSIONS.RECEIVE_MMS,
-      ]);
-    };
-  });
+interface ThreadItemProps {
+  thread: Thread;
+  onPress: () => void;
+  onLongPress: () => void;
+}
 
-  return <Redirect href={"/Home"} />;
+const ThreadItem: React.FC<ThreadItemProps> = ({
+  thread,
+  onPress,
+  onLongPress,
+}) => {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const formatTime = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
+
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } else if (diffInHours < 168) {
+      // 7 days
+      return date.toLocaleDateString([], { weekday: "short" });
+    } else {
+      return date.toLocaleDateString([], { month: "short", day: "numeric" });
+    }
+  };
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.threadItem,
+        { backgroundColor: isDark ? "#1a1a1a" : "#ffffff" },
+        thread.unread_count > 0 && {
+          backgroundColor: isDark ? "#2a2a2a" : "#f0f8ff",
+        },
+      ]}
+      onPress={onPress}
+      onLongPress={onLongPress}
+    >
+      <View style={styles.threadAvatar}>
+        <Ionicons
+          name="person-circle"
+          size={50}
+          color={isDark ? "#ffffff" : "#000000"}
+        />
+      </View>
+
+      <View style={styles.threadContent}>
+        <View style={styles.threadHeader}>
+          <Text
+            style={[
+              styles.threadName,
+              { color: isDark ? "#ffffff" : "#000000" },
+              thread.unread_count > 0 && { fontWeight: "bold" },
+            ]}
+          >
+            {thread.contact_name || thread.address}
+          </Text>
+          <Text
+            style={[
+              styles.threadTime,
+              { color: isDark ? "#888888" : "#666666" },
+            ]}
+          >
+            {formatTime(thread.date)}
+          </Text>
+        </View>
+
+        <View style={styles.threadFooter}>
+          <Text
+            style={[
+              styles.threadSnippet,
+              { color: isDark ? "#cccccc" : "#666666" },
+              thread.unread_count > 0 && { fontWeight: "bold" },
+            ]}
+            numberOfLines={1}
+          >
+            {thread.snippet}
+          </Text>
+
+          {thread.unread_count > 0 && (
+            <View style={styles.unreadBadge}>
+              <Text style={styles.unreadCount}>
+                {thread.unread_count > 99 ? "99+" : thread.unread_count}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {thread.type === "mms" && (
+        <Ionicons
+          name="attach"
+          size={16}
+          color={isDark ? "#888888" : "#666666"}
+          style={styles.mmsIcon}
+        />
+      )}
+    </TouchableOpacity>
+  );
 };
 
-export default Index;
+export default function HomeScreen() {
+  const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    loadThreads();
+    setupListeners();
+  }, []);
+
+  const setupListeners = () => {
+    // Listen for new SMS messages
+    smsService.addMessageListener("home", (message: SMSMessage) => {
+      loadThreads();
+    });
+
+    // Listen for new MMS messages
+    mmsService.addMessageListener("home", (message) => {
+      loadThreads();
+    });
+  };
+
+  const loadThreads = async () => {
+    try {
+      const allThreads = await smsService.getAllThreads();
+      setThreads(allThreads);
+    } catch (error) {
+      console.error("Error loading threads:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadThreads();
+    setRefreshing(false);
+  };
+
+  const handleThreadPress = (thread: Thread) => {
+    router.push({
+      pathname: "/conversation",
+      params: { threadId: thread.id, address: thread.address },
+    });
+  };
+
+  const handleThreadLongPress = (thread: Thread) => {
+    Alert.alert("Thread Options", "What would you like to do?", [
+      {
+        text: "Mark as Read",
+        onPress: () => smsService.markThreadAsRead(thread.id).then(loadThreads),
+      },
+      {
+        text: "Delete Thread",
+        style: "destructive",
+        onPress: () => {
+          Alert.alert(
+            "Delete Thread",
+            "Are you sure you want to delete this conversation? This action cannot be undone.",
+            [
+              { text: "Cancel", style: "cancel" },
+              {
+                text: "Delete",
+                style: "destructive",
+                onPress: () =>
+                  smsService.deleteThread(thread.id).then(loadThreads),
+              },
+            ]
+          );
+        },
+      },
+      { text: "Cancel", style: "cancel" },
+    ]);
+  };
+
+  const handleComposePress = () => {
+    router.push("/compose");
+  };
+
+  const handleSearchPress = () => {
+    router.push("/search");
+  };
+
+  const handleSettingsPress = () => {
+    router.push("/settings");
+  };
+
+  if (loading) {
+    return (
+      <View
+        style={[
+          styles.container,
+          { backgroundColor: isDark ? "#000000" : "#ffffff" },
+        ]}
+      >
+        <Text
+          style={[
+            styles.loadingText,
+            { color: isDark ? "#ffffff" : "#000000" },
+          ]}
+        >
+          Loading conversations...
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View
+      style={[
+        styles.container,
+        { backgroundColor: isDark ? "#000000" : "#ffffff" },
+      ]}
+    >
+      {/* Header */}
+      <View
+        style={[
+          styles.header,
+          { backgroundColor: isDark ? "#1a1a1a" : "#ffffff" },
+        ]}
+      >
+        <Text
+          style={[
+            styles.headerTitle,
+            { color: isDark ? "#ffffff" : "#000000" },
+          ]}
+        >
+          Messages
+        </Text>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity
+            onPress={handleSearchPress}
+            style={styles.headerButton}
+          >
+            <Ionicons
+              name="search"
+              size={24}
+              color={isDark ? "#ffffff" : "#000000"}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={handleSettingsPress}
+            style={styles.headerButton}
+          >
+            <Ionicons
+              name="settings-outline"
+              size={24}
+              color={isDark ? "#ffffff" : "#000000"}
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Threads List */}
+      <FlatList
+        data={threads}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <ThreadItem
+            thread={item}
+            onPress={() => handleThreadPress(item)}
+            onLongPress={() => handleThreadLongPress(item)}
+          />
+        )}
+        refreshing={refreshing}
+        onRefresh={onRefresh}
+        style={styles.threadsList}
+      />
+
+      {/* Bottom Navigation */}
+      <View
+        style={[
+          styles.bottomNav,
+          { backgroundColor: isDark ? "#1a1a1a" : "#ffffff" },
+        ]}
+      >
+        <TouchableOpacity style={styles.navButton} onPress={() => {}}>
+          <Ionicons
+            name="chatbubbles"
+            size={24}
+            color={isDark ? "#ffffff" : "#000000"}
+          />
+          <Text
+            style={[styles.navLabel, { color: isDark ? "#ffffff" : "#000000" }]}
+          >
+            Conversations
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.composeButton}
+          onPress={handleComposePress}
+        >
+          <Ionicons name="add" size={30} color="#ffffff" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.navButton}
+          onPress={handleSettingsPress}
+        >
+          <Ionicons
+            name="settings-outline"
+            size={24}
+            color={isDark ? "#888888" : "#666666"}
+          />
+          <Text
+            style={[styles.navLabel, { color: isDark ? "#888888" : "#666666" }]}
+          >
+            Settings
+          </Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "bold",
+  },
+  headerButtons: {
+    flexDirection: "row",
+  },
+  headerButton: {
+    marginLeft: 20,
+  },
+  threadsList: {
+    flex: 1,
+  },
+  threadItem: {
+    flexDirection: "row",
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+  },
+  threadAvatar: {
+    marginRight: 15,
+  },
+  threadContent: {
+    flex: 1,
+  },
+  threadHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 5,
+  },
+  threadName: {
+    fontSize: 16,
+    flex: 1,
+  },
+  threadTime: {
+    fontSize: 12,
+  },
+  threadFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  threadSnippet: {
+    fontSize: 14,
+    flex: 1,
+  },
+  unreadBadge: {
+    backgroundColor: "#007AFF",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 10,
+  },
+  unreadCount: {
+    color: "#ffffff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  mmsIcon: {
+    marginLeft: 10,
+  },
+  bottomNav: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderTopWidth: 1,
+    borderTopColor: "#e0e0e0",
+  },
+  navButton: {
+    alignItems: "center",
+    flex: 1,
+  },
+  navLabel: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  composeButton: {
+    backgroundColor: "#007AFF",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  loadingText: {
+    textAlign: "center",
+    marginTop: 50,
+    fontSize: 16,
+  },
+});

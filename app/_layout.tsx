@@ -1,33 +1,42 @@
-import {
-  DarkTheme,
-  DefaultTheme,
-  ThemeProvider,
-} from "@react-navigation/native";
-import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import "react-native-reanimated";
-
-import { useColorScheme } from "@/hooks/useColorScheme";
+import { useEffect } from "react";
+import { useColorScheme } from "react-native";
+import { smsService } from "../utils/smsService";
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
-  });
 
-  if (!loaded) {
-    // Async font loading only occurs in development.
-    return null;
-  }
+  useEffect(() => {
+    // Initialize SMS/MMS services
+    const initializeServices = async () => {
+      try {
+        await smsService.requestPermissions();
+        console.log("SMS/MMS services initialized");
+      } catch (error) {
+        console.error("Error initializing services:", error);
+      }
+    };
+
+    initializeServices();
+  }, []);
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Home" />
-        <Stack.Screen name="+not-found" />
+    <>
+      <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          animation: "slide_from_right",
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="conversation" />
+        <Stack.Screen name="compose" />
+        <Stack.Screen name="settings" />
+        <Stack.Screen name="search" />
+        <Stack.Screen name="media-viewer" />
       </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    </>
   );
 }
