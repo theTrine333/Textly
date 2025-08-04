@@ -20,8 +20,9 @@ const Chat = () => {
   const [chats, setChats] = useState<chatType[]>([
     {
       id: "0745891380",
-      message: "Hello, mambo",
-      time: new Date().getTime().toString(),
+      text: "Hello, mambo",
+      sender: "user",
+      timestamp: Date.now(),
     },
   ]);
   const handleSendSMS = async (Message: string) => {
@@ -29,8 +30,9 @@ const Chat = () => {
       ...chats,
       {
         id: "me",
-        message: Message,
-        time: new Date().toDateString(),
+        text: Message,
+        sender: "system",
+        timestamp: Date.now(),
       },
     ]);
   };
@@ -44,8 +46,8 @@ const Chat = () => {
       PermissionsAndroid.PERMISSIONS.RECEIVE_WAP_PUSH,
     ]);
   };
+
   useEffect(() => {
-    // getSendSMSPermissions();
     if (isFocused) {
       animatedheight.value = withSpring(height * 0.4, animatedProps);
       setTimeout(() => {
@@ -76,8 +78,9 @@ const Chat = () => {
       <ThemedView style={{ flex: 1 }}>
         <FlatList
           data={chats}
+          keyExtractor={(item: chatType) => item.timestamp.toString()}
           renderItem={({ item, index }) => (
-            <ChatBody Chat={item} index={index} />
+            <ChatBody Chat={item} index={index} key={index} />
           )}
         />
       </ThemedView>

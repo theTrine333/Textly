@@ -59,6 +59,7 @@ const Index = ({ sendFunction }: InputPromps) => {
           </TouchableOpacity>
           <TextInput
             placeholder="Send a message"
+            placeholderTextColor={"grey"}
             multiline
             autoFocus
             value={text}
