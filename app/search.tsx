@@ -375,7 +375,7 @@ export default function SearchScreen() {
                   { color: isDark ? "#888888" : "#666666" },
                 ]}
               >
-                No results found for "{searchQuery}"
+                No results found for &quot;{searchQuery}&quot;
               </Text>
             </View>
           }
