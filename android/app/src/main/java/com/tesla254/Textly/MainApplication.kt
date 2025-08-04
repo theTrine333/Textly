@@ -2,61 +2,38 @@ package com.tesla254.Textly
 
 import android.app.Application
 import android.content.IntentFilter
-import android.content.res.Configuration
-import android.provider.Telephony
+import android.telephony.TelephonyManager
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactNativeHost
 import com.facebook.react.ReactPackage
-import com.facebook.react.ReactHost
-import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.load
-import com.facebook.react.defaults.DefaultReactNativeHost
-import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
+import android.content.Intent
+import android.os.Build
+import android.provider.Telephony
+import com.facebook.react.bridge.ReactApplicationContext
+import com.facebook.react.ReactInstanceManager
+import com.facebook.react.bridge.ReactContext
+import com.tesla254.Textly.receivers.SmsReceiver
 
 class MainApplication : Application(), ReactApplication {
-
+  private lateinit var mReactNativeHost: ReactNativeHost
   private var smsReceiver: SmsReceiver? = null
-
-  override val reactNativeHost: ReactNativeHost = ReactNativeHostWrapper(
-    this,
-    object : DefaultReactNativeHost(this) {
-      override fun getPackages(): List<ReactPackage> {
-        val packages = PackageList(this).packages.toMutableList()
-        // Add custom SMS package
-        packages.add(SmsPackage())
-        return packages
-      }
-
-      override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"
-      override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
-      override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
-      override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
-    }
-  )
-
-  override val reactHost: ReactHost
-    get() = ReactNativeHostWrapper.createReactHost(applicationContext, reactNativeHost)
 
   override fun onCreate() {
     super.onCreate()
-    SoLoader.init(this, OpenSourceMergedSoMapping)
-    if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-      load()
-    }
+    SoLoader.init(this, false)
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
 
-    // Wait for React context to be initialized
-    reactNativeHost.reactInstanceManager.addReactInstanceEventListener { context ->
-      registerSmsReceiver(context)
-    }
-
-    // If already initialized (during fast reload), register immediately
-    if (reactNativeHost.reactInstanceManager.hasStartedCreatingInitialContext()) {
-      registerSmsReceiver(reactNativeHost.reactInstanceManager.currentReactContext)
+    // Register the SMS receiver after the JS context is ready
+    if (mReactNativeHost.reactInstanceManager.hasStartedCreatingInitialContext()) {
+      registerSmsReceiver(mReactNativeHost.reactInstanceManager.currentReactContext as? ReactApplicationContext)
+    } else {
+      mReactNativeHost.reactInstanceManager.addReactInstanceEventListener {
+        registerSmsReceiver(it as? ReactApplicationContext)
+      }
     }
   }
 
@@ -72,8 +49,23 @@ class MainApplication : Application(), ReactApplication {
     }
   }
 
-  override fun onConfigurationChanged(newConfig: Configuration) {
-    super.onConfigurationChanged(newConfig)
-    ApplicationLifecycleDispatcher.onConfigurationChanged(this, newConfig)
+  override fun getReactNativeHost(): ReactNativeHost {
+    return mReactNativeHost
+  }
+
+  init {
+    mReactNativeHost = ReactNativeHostWrapper(this,
+      object : ReactNativeHost(this) {
+        override fun getUseDeveloperSupport() = BuildConfig.DEBUG
+
+        override fun getPackages(): List<ReactPackage> {
+          return PackageList(this).packages
+        }
+
+        override fun getJSMainModuleName(): String {
+          return "index"
+        }
+      }
+    )
   }
 }
