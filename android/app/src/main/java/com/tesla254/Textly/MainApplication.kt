@@ -1,7 +1,9 @@
 package com.tesla254.Textly
 
 import android.app.Application
+import android.content.IntentFilter
 import android.content.res.Configuration
+import android.provider.Telephony
 
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
@@ -22,9 +24,9 @@ class MainApplication : Application(), ReactApplication {
         this,
         object : DefaultReactNativeHost(this) {
           override fun getPackages(): List<ReactPackage> {
-            val packages = PackageList(this).packages
-            // Packages that cannot be autolinked yet can be added manually here, for example:
-            // packages.add(MyReactNativePackage())
+            val packages = PackageList(this).packages.toMutableList()
+            // Add our custom SMS package
+            packages.add(SmsPackage())
             return packages
           }
 
@@ -48,6 +50,19 @@ class MainApplication : Application(), ReactApplication {
       load()
     }
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
+    
+    // Register SMS receiver
+    registerSmsReceiver()
+  }
+
+  private fun registerSmsReceiver() {
+    try {
+      val smsReceiver = SmsReceiver(null) // Will be set when React context is available
+      val filter = IntentFilter(Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
+      registerReceiver(smsReceiver, filter)
+    } catch (e: Exception) {
+      e.printStackTrace()
+    }
   }
 
   override fun onConfigurationChanged(newConfig: Configuration) {
