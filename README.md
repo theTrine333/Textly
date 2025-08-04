@@ -85,6 +85,16 @@ A comprehensive Android SMS/MMS messaging application built with React Native an
 
 ## 🛠 Technical Architecture
 
+### SMS Implementation
+
+The app uses a custom native Android module for SMS functionality, replacing the outdated `react-native-sms-android` package. The implementation includes:
+
+- **Native Android SMS Module** (`SmsModule.java`) - Handles SMS sending using modern Android APIs
+- **SMS Receiver** (`SmsReceiver.java`) - Handles incoming SMS messages
+- **Dual SIM Support** - Supports multiple SIM cards with subscription-based SMS manager
+- **Delivery Status Tracking** - Real-time delivery status updates via BroadcastReceivers
+- **Permission Management** - Comprehensive permission handling for SMS operations
+
 ### Database Schema
 
 The app uses SQLite with the following main tables:
@@ -209,6 +219,12 @@ Textly/
 │   ├── database.ts        # Database schema and operations
 │   ├── smsService.ts      # SMS functionality
 │   └── mmsService.ts      # MMS functionality
+├── android/               # Native Android code
+│   └── app/src/main/java/com/tesla254/Textly/
+│       ├── SmsModule.java     # Native SMS module
+│       ├── SmsReceiver.java   # SMS receiver
+│       ├── SmsPackage.java    # Package registration
+│       └── MainApplication.java # App entry point
 ├── components/            # Reusable components
 └── assets/               # Images and resources
 ```
@@ -221,7 +237,8 @@ Textly/
 - `expo-media-library` - Media access
 - `expo-image-picker` - Media selection
 - `expo-file-system` - File operations
-- `react-native-sms-android` - SMS functionality
+- `react-native-device-info` - Device information
+- Custom native Android SMS module - Modern SMS functionality
 
 ### Testing
 

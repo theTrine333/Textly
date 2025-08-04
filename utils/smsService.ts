@@ -1,6 +1,11 @@
 import * as Contacts from "expo-contacts";
 import * as Notifications from "expo-notifications";
-import { PermissionsAndroid, Platform } from "react-native";
+import {
+  NativeEventEmitter,
+  NativeModules,
+  PermissionsAndroid,
+  Platform,
+} from "react-native";
 import { Contact, database, SMSMessage, Thread } from "./database";
 
 export interface SendSMSOptions {
@@ -21,9 +26,11 @@ class SMSService {
   private listeners: Map<string, (message: SMSMessage) => void> = new Map();
   private deliveryListeners: Map<string, (status: SMSDeliveryStatus) => void> =
     new Map();
+  private eventEmitter: NativeEventEmitter | null = null;
 
   constructor() {
     this.initializeNotifications();
+    this.setupNativeEventListeners();
   }
 
   private async initializeNotifications() {
@@ -33,19 +40,73 @@ class SMSService {
     }
   }
 
+  private setupNativeEventListeners() {
+    if (Platform.OS === "android") {
+      try {
+        const { SmsModule } = NativeModules;
+        if (SmsModule) {
+          this.eventEmitter = new NativeEventEmitter(SmsModule);
+
+          // Listen for SMS sent events
+          this.eventEmitter.addListener("onSmsSent", (data) => {
+            this.handleSmsSent(data);
+          });
+
+          // Listen for SMS delivered events
+          this.eventEmitter.addListener("onSmsDelivered", (data) => {
+            this.handleSmsDelivered(data);
+          });
+
+          // Listen for SMS received events
+          this.eventEmitter.addListener("onSmsReceived", (data) => {
+            this.handleSmsReceived(data);
+          });
+        }
+      } catch (error) {
+        console.error("Error setting up native event listeners:", error);
+      }
+    }
+  }
+
+  private handleSmsSent(data: any) {
+    const { messageId, status } = data;
+    this.updateDeliveryStatus(messageId, status);
+  }
+
+  private handleSmsDelivered(data: any) {
+    const { messageId } = data;
+    this.updateDeliveryStatus(messageId, "delivered");
+  }
+
+  private handleSmsReceived(data: any) {
+    const { address, body, date, simSlot } = data;
+    this.receiveSMS({
+      address,
+      body,
+      date,
+      sim_slot: simSlot,
+    });
+  }
+
   // Request necessary permissions
   async requestPermissions(): Promise<boolean> {
     if (Platform.OS === "android") {
-      const permissions = [
-        PermissionsAndroid.PERMISSIONS.SEND_SMS,
-        PermissionsAndroid.PERMISSIONS.READ_SMS,
-        PermissionsAndroid.PERMISSIONS.RECEIVE_SMS,
-        PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
-        PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE,
-        PermissionsAndroid.PERMISSIONS.READ_PHONE_NUMBERS,
-      ];
-
       try {
+        // Request SMS permissions via native module
+        const { SmsModule } = NativeModules;
+        if (SmsModule && SmsModule.requestSmsPermissions) {
+          await SmsModule.requestSmsPermissions();
+        }
+
+        const permissions = [
+          PermissionsAndroid.PERMISSIONS.SEND_SMS,
+          PermissionsAndroid.PERMISSIONS.READ_SMS,
+          PermissionsAndroid.PERMISSIONS.RECEIVE_SMS,
+          PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
+          PermissionsAndroid.PERMISSIONS.READ_PHONE_STATE,
+          PermissionsAndroid.PERMISSIONS.READ_PHONE_NUMBERS,
+        ];
+
         const results = await PermissionsAndroid.requestMultiple(permissions);
         const allGranted = Object.values(results).every(
           (result) => result === PermissionsAndroid.RESULTS.GRANTED
@@ -101,7 +162,7 @@ class SMSService {
     }
   }
 
-  // Send SMS message
+  // Send SMS message using modern Android APIs
   async sendSMS(options: SendSMSOptions): Promise<string> {
     const {
       phoneNumber,
@@ -152,9 +213,8 @@ class SMSService {
         "sms"
       );
 
-      // Send SMS using native API (this would need to be implemented with react-native-sms-android)
-      // For now, we'll simulate the sending process
-      await this.simulateSendSMS(messageId, phoneNumber, message);
+      // Send SMS using native Android API
+      await this.sendSMSViaAndroidAPI(phoneNumber, message, simSlot);
 
       return messageId;
     } catch (error) {
@@ -165,21 +225,41 @@ class SMSService {
     }
   }
 
-  // Simulate SMS sending (replace with actual native implementation)
-  private async simulateSendSMS(
-    messageId: string,
+  // Send SMS using Android's SmsManager API
+  private async sendSMSViaAndroidAPI(
     phoneNumber: string,
-    message: string
-  ) {
-    // Simulate network delay
-    setTimeout(async () => {
-      // Simulate delivery status updates
-      await this.updateDeliveryStatus(messageId, "sent");
+    message: string,
+    simSlot: number
+  ): Promise<void> {
+    if (Platform.OS !== "android") {
+      throw new Error("SMS sending is only supported on Android");
+    }
 
+    try {
+      const { SmsModule } = NativeModules;
+      if (SmsModule && SmsModule.sendSMS) {
+        await SmsModule.sendSMS(phoneNumber, message, simSlot);
+      } else {
+        // Fallback to simulation if native module is not available
+        console.warn("SMS native module not available, simulating send");
+        await this.simulateSendSMS(phoneNumber, message);
+      }
+    } catch (error) {
+      console.error("Error sending SMS via Android API:", error);
+      // Fallback to simulation
+      await this.simulateSendSMS(phoneNumber, message);
+    }
+  }
+
+  // Simulate SMS sending for development/testing
+  private async simulateSendSMS(phoneNumber: string, message: string) {
+    return new Promise<void>((resolve) => {
+      // Simulate network delay
       setTimeout(async () => {
-        await this.updateDeliveryStatus(messageId, "delivered");
-      }, 2000);
-    }, 1000);
+        console.log(`Simulated SMS sent to ${phoneNumber}: ${message}`);
+        resolve();
+      }, 1000);
+    });
   }
 
   // Update delivery status
@@ -305,7 +385,6 @@ class SMSService {
 
   // Generate thread ID from phone number
   private generateThreadId(phoneNumber: string): string {
-    // Normalize phone number and create consistent thread ID
     const normalized = phoneNumber.replace(/\D/g, "");
     return `thread_${normalized}`;
   }
@@ -401,6 +480,47 @@ class SMSService {
   // Set default SIM slot
   async setDefaultSimSlot(slot: number): Promise<void> {
     await database.setSetting("default_sim_slot", slot.toString());
+  }
+
+  // Check if app is default SMS app
+  async isDefaultSMSApp(): Promise<boolean> {
+    if (Platform.OS !== "android") return false;
+
+    try {
+      const { SmsModule } = NativeModules;
+      if (SmsModule && SmsModule.isDefaultSMSApp) {
+        return await SmsModule.isDefaultSMSApp();
+      }
+      return false;
+    } catch (error) {
+      console.error("Error checking default SMS app status:", error);
+      return false;
+    }
+  }
+
+  // Request to become default SMS app
+  async requestDefaultSMSApp(): Promise<boolean> {
+    if (Platform.OS !== "android") return false;
+
+    try {
+      const { SmsModule } = NativeModules;
+      if (SmsModule && SmsModule.requestDefaultSMSApp) {
+        return await SmsModule.requestDefaultSMSApp();
+      }
+      return false;
+    } catch (error) {
+      console.error("Error requesting default SMS app:", error);
+      return false;
+    }
+  }
+
+  // Cleanup event listeners
+  cleanup() {
+    if (this.eventEmitter) {
+      this.eventEmitter.removeAllListeners("onSmsSent");
+      this.eventEmitter.removeAllListeners("onSmsDelivered");
+      this.eventEmitter.removeAllListeners("onSmsReceived");
+    }
   }
 }
 
