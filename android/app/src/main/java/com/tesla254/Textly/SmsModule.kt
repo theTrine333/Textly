@@ -16,7 +16,6 @@ import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class SmsModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
-
     companion object {
         private const val TAG = "SmsModule"
         private const val SMS_PERMISSION_REQUEST = 123
