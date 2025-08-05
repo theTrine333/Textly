@@ -23,7 +23,7 @@ class MainApplication : Application(), ReactApplication {
         object : DefaultReactNativeHost(this) {
           override fun getPackages(): List<ReactPackage> {
             val packages = PackageList(this).packages
-            packages.add(new SmsPackage())
+            packages.add(SmsPackage())
             return packages
           }
 
