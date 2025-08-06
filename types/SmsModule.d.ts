@@ -1,4 +1,4 @@
-declare module "react-native" {
+declare module "SmsModule" {
   interface NativeModulesStatic {
     SmsModule: {
       /**

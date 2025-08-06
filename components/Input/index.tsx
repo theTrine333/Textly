@@ -20,7 +20,9 @@ const Index = ({ sendFunction }: InputPromps) => {
     let string = "";
 
     numbers.forEach((item: any) => {
-      string += `[Mobile] ${item.number}\n`;
+      if (!string.includes(`[Mobile] ${item.number}`)) {
+        string += `[Mobile] ${item.number.replaceAll(" ", "")}\n`;
+      }
     });
 
     return string;
