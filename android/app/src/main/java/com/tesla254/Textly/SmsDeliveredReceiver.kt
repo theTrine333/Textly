@@ -7,12 +7,11 @@ import android.app.Activity
 
 class SmsDeliveredReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val app = context.applicationContext as? MainApplication
+        val app = context.applicationContext as MainApplication
         val status = when (resultCode) {
-            Activity.RESULT_OK -> "DELIVERED_SUCCESS"
-            else -> "DELIVERED_FAILED"
+            Activity.RESULT_OK -> "Delivered"
+            else -> "Not delivered"
         }
-
-        app?.smsModule?.sendEvent("onSmsDelivered", status)
+        app.smsModule?.notifySmsDelivered(status)
     }
 }

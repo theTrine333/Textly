@@ -7,8 +7,6 @@ import com.facebook.react.ReactApplication
 import com.facebook.react.ReactNativeHost
 import com.facebook.react.ReactPackage
 import com.facebook.react.ReactHost
-import com.facebook.react.bridge.NativeModule
-import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.load
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
@@ -26,19 +24,11 @@ class MainApplication : Application(), ReactApplication {
       override fun getPackages(): List<ReactPackage> {
         val packages = PackageList(this).packages
 
-        // Create a custom ReactPackage to hold SmsModule
-        val smsPackage = object : ReactPackage {
-          override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-            val module = SmsModule(reactContext)
-            (this@MainApplication).smsModule = module
-            return listOf(module)
-          }
+        // Add SmsPackage and store module reference
+        packages.add(SmsPackage { module ->
+          this@MainApplication.smsModule = module
+        })
 
-          override fun createViewManagers(reactContext: ReactApplicationContext) =
-            emptyList<com.facebook.react.uimanager.ViewManager<*, *>>()
-        }
-
-        packages.add(smsPackage)
         return packages
       }
 

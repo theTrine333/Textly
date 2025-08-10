@@ -7,15 +7,14 @@ import android.telephony.SmsManager
 
 class SmsSentReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val app = context.applicationContext as? MainApplication
+        val app = context.applicationContext as MainApplication
         val status = when (resultCode) {
-            SmsManager.RESULT_ERROR_GENERIC_FAILURE -> "SENT_FAILED"
-            SmsManager.RESULT_ERROR_NO_SERVICE -> "SENT_NO_SERVICE"
-            SmsManager.RESULT_ERROR_NULL_PDU -> "SENT_NULL_PDU"
-            SmsManager.RESULT_ERROR_RADIO_OFF -> "SENT_RADIO_OFF"
-            else -> "SENT_SUCCESS"
+            SmsManager.RESULT_ERROR_GENERIC_FAILURE -> "Generic failure"
+            SmsManager.RESULT_ERROR_NO_SERVICE -> "No service"
+            SmsManager.RESULT_ERROR_NULL_PDU -> "Null PDU"
+            SmsManager.RESULT_ERROR_RADIO_OFF -> "Radio off"
+            else -> "Sent"
         }
-
-        app?.smsModule?.sendEvent("onSmsSent", status)
+        app.smsModule?.notifySmsSent(status)
     }
 }

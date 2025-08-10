@@ -139,4 +139,22 @@ class SmsModule(private val reactContext: ReactApplicationContext) :
             promise.reject("DEFAULT_SMS_ERROR", e)
         }
     }
+
+    fun notifySmsSent(status: String) {
+    sendEvent("SmsSent", status)
+}
+
+    fun notifySmsDelivered(status: String) {
+        sendEvent("SmsDelivered", status)
+    }
+
+    private fun sendEvent(eventName: String, data: String) {
+        val params = Arguments.createMap().apply {
+            putString("status", data)
+        }
+        reactContext
+            .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+            .emit(eventName, params)
+    }
+
 }
