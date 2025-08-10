@@ -2,7 +2,6 @@ package com.tesla254.Textly
 
 import android.app.Application
 import android.content.res.Configuration
-import com.tesla254.Textly.SmsPackage
 import com.facebook.react.PackageList
 import com.facebook.react.ReactApplication
 import com.facebook.react.ReactNativeHost
@@ -12,28 +11,39 @@ import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.load
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
 import com.facebook.soloader.SoLoader
-
 import expo.modules.ApplicationLifecycleDispatcher
 import expo.modules.ReactNativeHostWrapper
 
 class MainApplication : Application(), ReactApplication {
 
+  var smsModule: SmsModule? = null
+
   override val reactNativeHost: ReactNativeHost = ReactNativeHostWrapper(
-        this,
-        object : DefaultReactNativeHost(this) {
-          override fun getPackages(): List<ReactPackage> {
-            val packages = PackageList(this).packages
-            packages.add(SmsPackage())
-            return packages
+    this,
+    object : DefaultReactNativeHost(this) {
+      override fun getPackages(): List<ReactPackage> {
+        val packages = PackageList(this).packages
+
+        // Create SmsModule manually so we can keep a reference to it
+        val smsPkg = object : SmsPackage() {
+          override fun createNativeModules(reactContext: com.facebook.react.bridge.ReactApplicationContext): List<com.facebook.react.bridge.NativeModule> {
+            val module = SmsModule(reactContext)
+            (this@MainApplication).smsModule = module
+            return listOf(module)
           }
+        }
 
-          override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"
-
-          override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
-
-          override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
-          override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
+        packages.add(smsPkg)
+        return packages
       }
+
+      override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"
+
+      override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
+
+      override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
+      override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
+    }
   )
 
   override val reactHost: ReactHost
@@ -43,7 +53,6 @@ class MainApplication : Application(), ReactApplication {
     super.onCreate()
     SoLoader.init(this, OpenSourceMergedSoMapping)
     if (BuildConfig.IS_NEW_ARCHITECTURE_ENABLED) {
-      // If you opted-in for the New Architecture, we load the native entry point for this app.
       load()
     }
     ApplicationLifecycleDispatcher.onApplicationCreate(this)
