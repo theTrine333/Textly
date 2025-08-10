@@ -7,6 +7,8 @@ import com.facebook.react.ReactApplication
 import com.facebook.react.ReactNativeHost
 import com.facebook.react.ReactPackage
 import com.facebook.react.ReactHost
+import com.facebook.react.bridge.NativeModule
+import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.load
 import com.facebook.react.defaults.DefaultReactNativeHost
 import com.facebook.react.soloader.OpenSourceMergedSoMapping
@@ -18,36 +20,36 @@ class MainApplication : Application(), ReactApplication {
 
   var smsModule: SmsModule? = null
 
-  private val innerHost = object : DefaultReactNativeHost(this) {
-    override fun getPackages(): List<ReactPackage> {
-    val packages = PackageList(this).packages
+  override val reactNativeHost: ReactNativeHost = ReactNativeHostWrapper(
+    this,
+    object : DefaultReactNativeHost(this) {
+      override fun getPackages(): List<ReactPackage> {
+        val packages = PackageList(this).packages
 
-    // Manually create SmsModule and hold reference
-    val smsModuleInstance = SmsModule(reactInstanceManager.currentReactContext)
-    this@MainApplication.smsModule = smsModuleInstance
+        // Create a custom ReactPackage to hold SmsModule
+        val smsPackage = object : ReactPackage {
+          override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
+            val module = SmsModule(reactContext)
+            (this@MainApplication).smsModule = module
+            return listOf(module)
+          }
 
-    packages.add(object : ReactPackage {
-        override fun createNativeModules(reactContext: com.facebook.react.bridge.ReactApplicationContext) =
-            listOf(smsModuleInstance)
-
-        override fun createViewManagers(reactContext: com.facebook.react.bridge.ReactApplicationContext) =
+          override fun createViewManagers(reactContext: ReactApplicationContext) =
             emptyList<com.facebook.react.uimanager.ViewManager<*, *>>()
-    })
+        }
 
-    return packages
-}
+        packages.add(smsPackage)
+        return packages
+      }
 
+      override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"
 
-    override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"
+      override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
 
-    override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
-
-    override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
-    override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
-  }
-
-  override val reactNativeHost: ReactNativeHost =
-    ReactNativeHostWrapper(this, innerHost)
+      override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
+      override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
+    }
+  )
 
   override val reactHost: ReactHost
     get() = ReactNativeHostWrapper.createReactHost(applicationContext, reactNativeHost)

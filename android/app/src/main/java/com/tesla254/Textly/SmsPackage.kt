@@ -5,9 +5,14 @@ import com.facebook.react.bridge.NativeModule
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.uimanager.ViewManager
 
-class SmsPackage : ReactPackage {
+class SmsPackage(
+    private val onModuleCreated: ((SmsModule) -> Unit)? = null
+) : ReactPackage {
+
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-        return listOf(SmsModule(reactContext))
+        val module = SmsModule(reactContext)
+        onModuleCreated?.invoke(module) // Let MainApplication keep a reference
+        return listOf(module)
     }
 
     override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> {
