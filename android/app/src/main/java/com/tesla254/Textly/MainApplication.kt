@@ -18,33 +18,35 @@ class MainApplication : Application(), ReactApplication {
 
   var smsModule: SmsModule? = null
 
-  override val reactNativeHost: ReactNativeHost = ReactNativeHostWrapper(
-    this,
-    object : DefaultReactNativeHost(this) {
-      override fun getPackages(): List<ReactPackage> {
-        val packages = PackageList(this).packages
+  private val innerHost = object : DefaultReactNativeHost(this) {
+    override fun getPackages(): List<ReactPackage> {
+      val packages = PackageList(this).packages.toMutableList()
 
-        // Create SmsModule manually so we can keep a reference to it
-        val smsPkg = object : SmsPackage() {
-          override fun createNativeModules(reactContext: com.facebook.react.bridge.ReactApplicationContext): List<com.facebook.react.bridge.NativeModule> {
-            val module = SmsModule(reactContext)
-            (this@MainApplication).smsModule = module
-            return listOf(module)
-          }
+      // Create SmsModule manually so we can keep a reference to it
+      val smsPkg = object : SmsPackage() {
+        override fun createNativeModules(
+          reactContext: com.facebook.react.bridge.ReactApplicationContext
+        ): List<com.facebook.react.bridge.NativeModule> {
+          val module = SmsModule(reactContext)
+          (this@MainApplication).smsModule = module
+          return listOf(module)
         }
-
-        packages.add(smsPkg)
-        return packages
       }
 
-      override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"
-
-      override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
-
-      override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
-      override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
+      packages.add(smsPkg)
+      return packages
     }
-  )
+
+    override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"
+
+    override fun getUseDeveloperSupport(): Boolean = BuildConfig.DEBUG
+
+    override val isNewArchEnabled: Boolean = BuildConfig.IS_NEW_ARCHITECTURE_ENABLED
+    override val isHermesEnabled: Boolean = BuildConfig.IS_HERMES_ENABLED
+  }
+
+  override val reactNativeHost: ReactNativeHost =
+    ReactNativeHostWrapper(this, innerHost)
 
   override val reactHost: ReactHost
     get() = ReactNativeHostWrapper.createReactHost(applicationContext, reactNativeHost)
