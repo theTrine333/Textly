@@ -20,22 +20,23 @@ class MainApplication : Application(), ReactApplication {
 
   private val innerHost = object : DefaultReactNativeHost(this) {
     override fun getPackages(): List<ReactPackage> {
-      val packages = PackageList(this).packages.toMutableList()
+    val packages = PackageList(this).packages
 
-      // Create SmsModule manually so we can keep a reference to it
-      val smsPkg = object : SmsPackage() {
-        override fun createNativeModules(
-          reactContext: com.facebook.react.bridge.ReactApplicationContext
-        ): List<com.facebook.react.bridge.NativeModule> {
-          val module = SmsModule(reactContext)
-          (this@MainApplication).smsModule = module
-          return listOf(module)
-        }
-      }
+    // Manually create SmsModule and hold reference
+    val smsModuleInstance = SmsModule(reactInstanceManager.currentReactContext)
+    this@MainApplication.smsModule = smsModuleInstance
 
-      packages.add(smsPkg)
-      return packages
-    }
+    packages.add(object : ReactPackage {
+        override fun createNativeModules(reactContext: com.facebook.react.bridge.ReactApplicationContext) =
+            listOf(smsModuleInstance)
+
+        override fun createViewManagers(reactContext: com.facebook.react.bridge.ReactApplicationContext) =
+            emptyList<com.facebook.react.uimanager.ViewManager<*, *>>()
+    })
+
+    return packages
+}
+
 
     override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"
 

@@ -3,23 +3,19 @@ package com.tesla254.Textly
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.app.Activity
-import com.facebook.react.bridge.ReactApplicationContext
-import com.facebook.react.modules.core.DeviceEventManagerModule
+import android.telephony.SmsManager
 
 class SmsSentReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        val app = context.applicationContext as? MainApplication
         val status = when (resultCode) {
-            Activity.RESULT_OK -> "SENT_SUCCESS"
-            else -> "SENT_FAILED"
+            SmsManager.RESULT_ERROR_GENERIC_FAILURE -> "SENT_FAILED"
+            SmsManager.RESULT_ERROR_NO_SERVICE -> "SENT_NO_SERVICE"
+            SmsManager.RESULT_ERROR_NULL_PDU -> "SENT_NULL_PDU"
+            SmsManager.RESULT_ERROR_RADIO_OFF -> "SENT_RADIO_OFF"
+            else -> "SENT_SUCCESS"
         }
 
-        // Emit event to JS
-        val reactContext = context.applicationContext as? ReactApplication
-        if (reactContext != null && reactContext is ReactApplication) {
-            val reactAppContext = (reactContext as ReactApplication).reactNativeHost.reactInstanceManager.currentReactContext
-            reactAppContext?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
-                ?.emit("onSmsSent", status)
-        }
+        app?.smsModule?.sendEvent("onSmsSent", status)
     }
 }
